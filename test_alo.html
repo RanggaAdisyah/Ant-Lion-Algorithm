@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEST CLASS ALO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <h1 class="text-center text-2xl font-bold mt-10">TEST CLASS ALO</h1>
+
+    <table class="min-w-full mt-5">
+        <thead>
+            <tr>
+                <th class="border border-gray-300 p-2">Ant Lion</th>
+                <th class="border border-gray-300 p-2">Position</th>
+                <th class="border border-gray-300 p-2">Fitness</th>
+            </tr>
+        </thead>
+        <tbody id="antLionTableBody"></tbody>
+    </table>
+
+    <div class="mt-5 text-center">
+        <p id="gbestFitness" class="text-lg font-semibold">Gbest Fitness:</p>
+        <p id="gbestPosition" class="text-lg font-semibold">Gbest Position:</p>
+    </div>
+
+    <div class="text-center mt-5">
+        <button id="startButton" class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded">Start Iteration</button>
+    </div>
+
+    <div class="mt-5">
+        <canvas id="fitnessChart" width="600" height="400"></canvas>
+    </div>
+
+    <script type="module">
+        import { Rosenbrock } from './rosenbrock.js'; // Import fungsi Rosenbrock
+        import { ALO } from './alo.js'; // Import class ALO
+
+        const tableBody = document.getElementById('antLionTableBody');
+        const gbestFitnessElement = document.getElementById('gbestFitness');
+        const gbestPositionElement = document.getElementById('gbestPosition');
+        const startButton = document.getElementById('startButton');
+        const fitnessChartCtx = document.getElementById('fitnessChart').getContext('2d');
+
+        const nAnts = 10; // Jumlah semut
+        const nDimensions = 2; // Dimensi (untuk Rosenbrock)
+        const minBoundary = -5; // Batas minimum
+        const maxBoundary = 5; // Batas maksimum
+        const maxIterations = 50; // Iterasi maksimum
+
+        // Inisialisasi algoritma ALO
+        const alo = new ALO(nAnts, nDimensions, Rosenbrock, maxIterations);
+        alo.minBoundary = minBoundary;
+        alo.maxBoundary = maxBoundary;
+
+        let iteration = 0;
+        let gbestFitnessData = [];
+        let labels = [];
+
+        // Konfigurasi chart untuk memvisualisasikan fitness terbaik
+        const fitnessChart = new Chart(fitnessChartCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Gbest Fitness',
+                    data: gbestFitnessData,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Iteration'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Gbest Fitness'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update chart setiap iterasi
+        function updateChart() {
+            console.log('Iteration:', iteration, 'Fitness:', alo.eliteFitness);  // Cek nilai fitness dan iterasi
+            labels.push(iteration);
+            gbestFitnessData.push(alo.eliteFitness);
+            fitnessChart.update();
+        }
+
+        // Update tabel ant lion
+        function updateTable() {
+            tableBody.innerHTML = '';
+            alo.antLions.forEach((antLion, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="border border-gray-300 p-2 text-center">${index + 1}</td>
+                    <td class="border border-gray-300 p-2 text-center">${antLion.map(p => p.toFixed(2)).join(', ')}</td>
+                    <td class="border border-gray-300 p-2 text-center">${alo.antLionsFitness[index].toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            gbestFitnessElement.textContent = `Gbest Fitness: ${alo.eliteFitness.toFixed(2)}`;
+            gbestPositionElement.textContent = `Gbest Position: ${alo.elitePosition.map(gp => gp.toFixed(2)).join(', ')}`;
+        }
+
+        // Fungsi untuk menjalankan iterasi ALO
+        function runALOIterations() {
+            const interval = setInterval(() => {
+                if (iteration >= maxIterations) {
+                    clearInterval(interval);
+                } else {
+                    iteration++;
+                    alo.mainALO();
+                    updateTable();
+                    updateChart();  // Pastikan grafik diperbarui setelah setiap iterasi
+                }
+            }, 500); // Interval waktu per iterasi (500 ms)
+        }
+
+        // Event listener untuk memulai iterasi saat tombol diklik
+        startButton.addEventListener('click', () => {
+            runALOIterations();
+            startButton.disabled = true; // Menonaktifkan tombol setelah dimulai
+        });
+    </script>
+</body>
+
+</html>
